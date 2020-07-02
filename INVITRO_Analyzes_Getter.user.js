@@ -8,7 +8,7 @@
 // @grant         GM_setClipboard
 // @include       https://lk.invitro.ru/lkkk/*/results/list*
 // @run-at        document-end
-// @updateURL     https://github.com/INerVI/JS-UserScripts/raw/cript/INVITRO_Analyzes_Getter.user.js
+// @updateURL     https://github.com/INerVI/JS-UserScripts/raw/script/INVITRO_Analyzes_Getter.user.js
 // @noframe
 // ==/UserScript==
 
