@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          INVITRO Analyzes Getter
-// @version       0.2
+// @version       0.3
 // @namespace     NerV_Scripts
 // @author        NerV
 // @grant         GM_addStyle
@@ -109,12 +109,13 @@ function GetOrder ( orderButton, callback ) {
 
 
 function GetOrderPage ( oid, callback ) {
+	var xhrHandler = OrderPageResponse.bind($SCRIPT_CONTEXT, oid, callback);
 	GM_xmlhttpRequest({
 		method: 'GET',
 		url: URL_PREFIX + '/details?token=' + oid,
 		headers: { 'Host': 'lk.invitro.ru' },
 		timeout: 15000,
-		onloadend: OrderPageResponse.bind($SCRIPT_CONTEXT, oid, callback)
+		onload: xhrHandler, onerror: xhrHandler, ontimeout: xhrHandler, onabort: xhrHandler
 	});
 }
 
@@ -130,11 +131,12 @@ function OrderPageResponse ( oid, resultCallback, xhrResponse ) {
 function ParseOrderPage ( oid ) {
 	var orderValue = NormalizeVariable(parseContainer.getElementsByClassName('inz-head__big-title')[0].innerHTML
 							.replace('ИНЗ', '').replace('от', '')).split(' ');
+	
 	var orderInfo = {
 		order_id: orderValue[0],
 		order_date: orderValue[1],
 		patient_name: NormalizeVariable(parseContainer.getElementsByClassName('result-patient-info__desc')[0].innerHTML),
-		patient_date: '-',
+		patient_date: GetPatientBirthday(oid),
 		analyzes: [ ]
 	};
 	
@@ -159,6 +161,16 @@ function ParseOrderPage ( oid ) {
 	return true;
 }
 
+function GetPatientBirthday ( oid ) {
+	var node = document.getElementById('__us__get_order_btn_' + oid);
+	if (node) {
+		node = node.parentNode.querySelector('.table-results-research__patient time');
+		if (node) { return NormalizeVariable(node.innerHTML); }
+		return '[НЕТ ДАННЫХ]';
+	}
+	return '[НЕТ ДАННЫХ]';
+}
+
 
 function MakeOrderHTML ( oid, orderInfo ) {
 	var analysis = null;
@@ -179,6 +191,10 @@ function MakeOrderHTML ( oid, orderInfo ) {
 
 function ShowResultsWindow ( oid ) {
 	HideResultsWindow();
+	
+	if (ORDERS_RESULTS[oid].patient_date === '[НЕТ ДАННЫХ]') {
+		ORDERS_RESULTS[oid].patient_date = GetPatientBirthday(oid);
+	}
 	
 	resultWindow_orderId.innerHTML = ORDERS_RESULTS[oid].order_id;
 	resultWindow_orderDate.innerHTML = ORDERS_RESULTS[oid].order_date;
@@ -239,7 +255,7 @@ function OnClickOrderInfoValue ( event ) {
 					'</tr>' +
 					'<tr>' +
 						'<td id="__us__results_window_patient_name" title="Скопировать имя пациента в буфер обмена">-</td>' +
-						'<td id="__us__results_window_patient_birthday" title="Скопировать дату рождения пациента в буфер обмена">-</td>' +
+						'<td id="__us__results_window_patient_birthday" title="Скопировать дату рождения пациента в буфер обмена">[НЕТ ДАННЫХ]</td>' +
 					'</tr>' +
 				'</table>' +
 			'</div>' +
@@ -337,15 +353,11 @@ GM_addStyle(
 		+ 'background: none no-repeat transparent; '
 	+ '}\r\n' +
 	
-	'.--us--result-window-info-table { '
-		+ 'font-weight: bold; '
-		// + 'color: #fff; '
-	+ '}\r\n' +
-	'.--us--result-window-info-table td { cursor: pointer; }\r\n' +
+	'.--us--result-window-info-table td { cursor: pointer; font-weight: bold; color: #000 }\r\n' +
 	'.--us--result-window-info-table td:last-child { width: 40%; }\r\n' +
 	'.--us--result-window-info-table td:hover { color: #ff8000; }\r\n' +
 	
-	'.--us--result-window-info-table td:before { font-weight: normal; }\r\n' +
+	'.--us--result-window-info-table td:before { font-weight: normal; color: #666; }\r\n' +
 	'#__us__results_window_order_id:before { content: "Номер заказа: "; }\r\n' +
 	'#__us__results_window_order_date:before { content: "Дата заказа: "; }\r\n' +
 	'#__us__results_window_patient_name:before { content: "Пациент: "; display: inline-block; width: 100%; }\r\n' +
